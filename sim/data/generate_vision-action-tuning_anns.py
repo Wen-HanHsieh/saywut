@@ -87,10 +87,11 @@ def generate(args):
         import random
         random.shuffle(final_json_content)
 
-        output_path = args.save_path
+        output_path = f'/home/elvis/saywut/eval_data/result/{task}_fp_eval_result.json'
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         with open(output_path, 'w') as json_file:
             json.dump(final_json_content, json_file)
+            print(f'save the json to {output_path}')
 
         print(total_count)
 

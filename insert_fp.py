@@ -608,12 +608,14 @@ def insert_false_premises(input_file, output_file, hard_premise_ratio=0.2, easy_
 
 # Example usage
 if __name__ == "__main__":
-    input_file = "parsed_data.json"
-    output_file = "robotic_tasks_with_false_premises.json"
-    insert_false_premises(
-        input_file, 
-        output_file, 
-        hard_premise_ratio=0.2,     # 20% of episodes get hard false premises
-        easy_premise_ratio=0.65,     # 65% of episodes get easy false premises
-        easy_steps_per_episode=20   # 20 steps per episode get easy false premises
-    )
+    tasks = ['close_jar', 'push_buttons', 'slide_block_to_color_target', 'meat_off_grill', 'put_money_in_safe', 'sweep_to_dustpan_of_size', 'open_drawer', 'reach_and_drag', 'turn_tap']
+    for task in tasks:
+        input_file = f'eval_data/{task}_eval.json'
+        output_file =f'eval_data/{task}_fp_eval.json'
+        insert_false_premises(
+            input_file, 
+            output_file, 
+            hard_premise_ratio=0.2,     # 20% of episodes get hard false premises
+            easy_premise_ratio=0.65,     # 65% of episodes get easy false premises
+            easy_steps_per_episode=20   # 20 steps per episode get easy false premises
+        )

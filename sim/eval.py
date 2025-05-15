@@ -78,14 +78,15 @@ def eval_seed(eval_cfg,
     writer_lock = manager.Lock()
     json_data = None
     weight = eval_cfg.method.ckpt
-    json_file_path = "/home/elvis/saywut/robotic_tasks_with_false_premises.json"
+    task = eval_cfg.rlbench.tasks[0]
+    json_file_path = f'/home/elvis/saywut/eval_data/{task}_fp_eval.json'
     logging.info(f'Loading JSON prompts from: {json_file_path}')
     with open(json_file_path, 'r') as f:
         json_data = json.load(f)
         json_data = create_hierarchical_dict(json_data) #  json_dict[task][episode][step]: value
         logging.info(f'Loaded {len(json_data)} JSON prompt entries')
         try:
-            json_data = json_data[eval_cfg.rlbench.tasks[0]]
+            json_data = json_data[task]
         except:
             raise Exception("Task not found in JSON data")
 

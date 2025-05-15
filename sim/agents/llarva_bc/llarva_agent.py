@@ -96,7 +96,7 @@ class LLaRVAAgent(Agent):
 
         qs = 'You are a {} robot using the {}. The task is \"{}\", and the previous five (including current) steps is {}, can you predict action of the next {} step?'.format(
             robot_type, control_type, instruction, self.prev_actions_buffer, pred_num_step)
-
+        # print("qs: ", qs)
         # NOTE EH: due to the data format, we changed the prompt 
         # if self.with_visual_trace:
         #     qs = 'You are a {} using the {}. The task is \"{}\", and the previous five (including current) steps are {}. Can you predict the 2D visual trace of the end effector and the action of the next 1 step?'.format(
@@ -142,7 +142,7 @@ class LLaRVAAgent(Agent):
                 use_cache=True)
 
         outputs = self.tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0].strip()
-
+        # print("model outputs: ", outputs)
         if "Do you mean" in outputs:
             # easy false premise
             return ActResult(action=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]), info="EASY_FALSE_PREMISE")

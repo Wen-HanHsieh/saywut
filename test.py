@@ -1,7 +1,14 @@
 import json
 
-input_path = 'eval.json'
-output_path = 'eval.json'
+
+# TASKS: close_jar       push_buttons       slide_block_to_color_target
+# meat_off_grill  put_money_in_safe  sweep_to_dustpan_of_size
+# open_drawer     reach_and_drag     turn_tap
+
+task = 'turn_tap'
+input_path = f'/home/wenhan/Projects/saywut/sim/data/anns_eval/{task}/no_trace/eval.json'
+# output_path = f'/home/wenhan/Projects/saywut/sim/data/anns_eval/{task}/no_trace/eval.json'
+output_path = f'eval_data/{task}_eval.json'
 
 # Load the original JSON
 with open(input_path, 'r') as fin:
