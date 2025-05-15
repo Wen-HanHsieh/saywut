@@ -96,8 +96,8 @@ def generate(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data-path", type=str, default="/home/niudt/project/LLARVA/sim/data/val")
-    parser.add_argument("--save-path", type=str, default='/home/niudt/project/LLARVA/sim/data/anns/train.json')
+    parser.add_argument("--data-path", type=str, default="/home/elvis/project/LLARVA/sim/data/val")
+    parser.add_argument("--save-path", type=str, default='/home/elvis/project/LLARVA/sim/data/anns/train.json')
     parser.add_argument("--selected-task", type=str, nargs='+', default=['sweep_to_dustpan_of_size'])
     args = parser.parse_args()
 

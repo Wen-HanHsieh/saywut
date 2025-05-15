@@ -5,3 +5,25 @@
 /data/
 /sim/PyRep/
 /sim/data/val/
+
+# CoppeliaSim and custom folders
+/CoppeliaSim/
+/Gripper_detector/
+/vicuna-7b-v1.5/
+
+# ignore the whole llava and sim trees
+/llava/
+/sim/YARR/
+/sim/outputs/
+/sim/RLBench/
+
+# JSON artifacts
+*.json
+
+# loose scripts
+start.sh
+/scripts/v1_5/test.sh
+
+# Python bytecode & caches
+__pycache__/
+*.py[cod]

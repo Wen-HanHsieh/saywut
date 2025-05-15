@@ -46,7 +46,7 @@ class LLaRVAAgent(Agent):
         model_path = os.path.expanduser(policy_ckpt)
         self.model_name = get_model_name_from_path(model_path)
         self.policy_ckpt = policy_ckpt
-        self.with_visual_trace = False
+        self.with_visual_trace = True
 
 
     def build(self, training: bool, device: torch.device = None):
@@ -70,7 +70,7 @@ class LLaRVAAgent(Agent):
         return noisy_action
 
     def act(self, step: int, observation: dict, task_goal: str,
-            deterministic=False) -> ActResult:
+            deterministic=False, json_prompt=None) -> ActResult:
 
         """Step function."""
         # Language
@@ -90,13 +90,20 @@ class LLaRVAAgent(Agent):
 
         self.prev_actions_buffer.append(current_pose)
         self.prev_actions_buffer = self.prev_actions_buffer[1:]
+        
+        if json_prompt is not None:
+            instruction = self.extract_instruction(json_prompt)
 
-        if self.with_visual_trace:
-            qs = 'You are a {} using the {}. The task is \"{}\", and the previous five (including current) steps are {}. Can you predict the 2D visual trace of the end effector and the action of the next 1 step?'.format(
-                robot_type, control_type, instruction, self.prev_actions_buffer, pred_num_step)
-        else:
-            qs = 'You are a {} robot using the {}. The task is \"{}\", and the previous five (including current) steps is {}, can you predict action of the next {} step?'.format(
+        qs = 'You are a {} robot using the {}. The task is \"{}\", and the previous five (including current) steps is {}, can you predict action of the next {} step?'.format(
             robot_type, control_type, instruction, self.prev_actions_buffer, pred_num_step)
+
+        # NOTE EH: due to the data format, we changed the prompt 
+        # if self.with_visual_trace:
+        #     qs = 'You are a {} using the {}. The task is \"{}\", and the previous five (including current) steps are {}. Can you predict the 2D visual trace of the end effector and the action of the next 1 step?'.format(
+        #         robot_type, control_type, instruction, self.prev_actions_buffer, pred_num_step)
+        # else:
+        #     qs = 'You are a {} robot using the {}. The task is \"{}\", and the previous five (including current) steps is {}, can you predict action of the next {} step?'.format(
+        #     robot_type, control_type, instruction, self.prev_actions_buffer, pred_num_step)
 
         if self.model.config.mm_use_im_start_end:
             qs = DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN + '\n' + qs
@@ -117,7 +124,7 @@ class LLaRVAAgent(Agent):
 
         debug = True # if you want save the vis
         if debug:
-            save_path = '/home/niudt/tmp/release/sweep/{}.jpg'.format(self.rollout_step_counter)
+            save_path = '/home/elvis/tmp/release/sweep/{}.jpg'.format(self.rollout_step_counter)
             os.makedirs(os.path.dirname(save_path), exist_ok=True)
             image.save(save_path)
 
@@ -136,42 +143,56 @@ class LLaRVAAgent(Agent):
 
         outputs = self.tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0].strip()
 
-        self.tj[self.rollout_step_counter] = outputs
-        if not self.with_visual_trace:
-            # Extracting the list of numbers using regular expression
-            numbers_str = re.search(r'\[(.*?)\]', outputs).group(1)
-
-            # Splitting the numbers string into individual numbers
-            # here add rectify for if it find multiple '[
-            numbers = [self.clean_string(x) for x in numbers_str.split(',')]
-            if len(numbers) == 7:
-                numbers.append(1.0)
-            numbers_list = [float(x) for x in numbers]
-            numpy_array = np.array(numbers_list)
+        if "Do you mean" in outputs:
+            # easy false premise
+            return ActResult(action=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]), info="EASY_FALSE_PREMISE")
+        elif "I couldn't find" in outputs:
+            # hard false premise
+            return ActResult(action=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]), info="HARD_FALSE_PREMISE")
         else:
-            match = re.search(r"The next action step: \[([^\]]+)\]", outputs)
-            if match:
-                # Extract the string and split it into a list of strings
-                action_step_str = match.group(1)
-                action_step_list = action_step_str.split(", ")
+            self.tj[self.rollout_step_counter] = outputs
+            if not self.with_visual_trace:
+                # Extracting the list of numbers using regular expression
+                numbers_str = re.search(r'\[(.*?)\]', outputs).group(1)
 
-                # Convert the list of strings to a list of floats
-                action_step_floats = [float(x) for x in action_step_list]
-
-                # Convert the list of floats to a NumPy array
-                numpy_array = np.array(action_step_floats)
-
-                # print(action_step_array)
+                # Splitting the numbers string into individual numbers
+                # here add rectify for if it find multiple '[
+                numbers = [self.clean_string(x) for x in numbers_str.split(',')]
+                if len(numbers) == 7:
+                    numbers.append(1.0)
+                numbers_list = [float(x) for x in numbers]
+                numpy_array = np.array(numbers_list)
             else:
-                print("No match found")
+                match = re.search(r"The next action step: \[([^\]]+)\]", outputs)
+                if match:
+                    # Extract the string and split it into a list of strings
+                    action_step_str = match.group(1)
+                    action_step_list = action_step_str.split(", ")
 
-        action_pred = numpy_array
+                    # Convert the list of strings to a list of floats
+                    action_step_floats = [float(x) for x in action_step_list]
 
-        self.rollout_step_counter += 1
+                    # Convert the list of floats to a NumPy array
+                    numpy_array = np.array(action_step_floats)
 
-        print('step {} pred action: {}'.format(step, action_pred))
+                    # print(action_step_array)
+                else:
+                    print("No match found")
 
-        return ActResult(action=action_pred)
+            action_pred = numpy_array
+
+            self.rollout_step_counter += 1
+
+            print('step {} pred action: {}'.format(step, action_pred))
+
+            return ActResult(action=action_pred)
+
+    def extract_instruction(self, text):
+        pattern = r'The task is "([^"]*)"'
+        match = re.search(pattern, text)
+        
+        if match:
+            return match.group(1)
 
     def clean_string(self, input_string):
         # Use regex to remove unwanted characters

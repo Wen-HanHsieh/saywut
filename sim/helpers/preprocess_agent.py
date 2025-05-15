@@ -32,9 +32,8 @@ class PreprocessAgent(Agent):
         return self._pose_agent.update(step, replay_sample)
 
     def act(self, step: int, observation: dict, task_goal: str,
-            deterministic=False, step_idx = 0) -> ActResult:
-
-        act_res = self._pose_agent.act(step_idx, observation, task_goal, deterministic)
+            deterministic=False, step_idx = 0, json_prompt=None) -> ActResult:
+        act_res = self._pose_agent.act(step_idx, observation, task_goal, deterministic, json_prompt=json_prompt)
         act_res.replay_elements.update({'demo': False})
         return act_res
 

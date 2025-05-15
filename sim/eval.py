@@ -5,6 +5,7 @@ import sys
 import hydra
 import numpy as np
 import torch
+import json
 from omegaconf import DictConfig, OmegaConf, ListConfig
 from rlbench.action_modes.action_mode import MoveArmThenGripper
 from rlbench.action_modes.arm_action_modes import JointVelocity
@@ -23,6 +24,23 @@ import torch.multiprocessing
 torch.multiprocessing.set_sharing_strategy('file_system')
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 
+def create_hierarchical_dict(json_data):
+        hierarchical_dict = {}
+        
+        for entry in json_data:
+            task = entry['task']
+            episode = entry['episode']
+            step = entry['step']
+            
+            if task not in hierarchical_dict:
+                hierarchical_dict[task] = {}
+            
+            if episode not in hierarchical_dict[task]:
+                hierarchical_dict[task][episode] = {}
+            
+            hierarchical_dict[task][episode][step] = entry
+            
+        return hierarchical_dict
 
 def eval_seed(eval_cfg,
               logdir,
@@ -58,9 +76,20 @@ def eval_seed(eval_cfg,
     manager = Manager()
     save_load_lock = manager.Lock()
     writer_lock = manager.Lock()
-
+    json_data = None
     weight = eval_cfg.method.ckpt
-    env_runner.start(weight, save_load_lock, writer_lock, env_config, 0, eval_cfg.framework.eval_save_metrics, eval_cfg.cinematic_recorder)
+    json_file_path = "/home/elvis/saywut/robotic_tasks_with_false_premises.json"
+    logging.info(f'Loading JSON prompts from: {json_file_path}')
+    with open(json_file_path, 'r') as f:
+        json_data = json.load(f)
+        json_data = create_hierarchical_dict(json_data) #  json_dict[task][episode][step]: value
+        logging.info(f'Loaded {len(json_data)} JSON prompt entries')
+        try:
+            json_data = json_data[eval_cfg.rlbench.tasks[0]]
+        except:
+            raise Exception("Task not found in JSON data")
+
+    env_runner.start(weight, save_load_lock, writer_lock, env_config, 0, eval_cfg.framework.eval_save_metrics, eval_cfg.cinematic_recorder, json_data)
 
     del env_runner
     del agent

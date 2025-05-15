@@ -6,20 +6,20 @@ method:
 rlbench:
     task_name: "multi"
     tasks: [meat_off_grill]
-    demo_path: /home/niudt/project/LLARVA/sim/data/val
+    demo_path: /home/elvis/project/LLARVA/sim/data/val
     episode_length: 150
     cameras: [front]
     camera_resolution: [128, 128]
     scene_bounds: [-0.3, -0.5, 0.6, 0.7, 0.5, 1.6]
     include_lang_goal_in_obs: False
     time_in_state: True
-    headless: True
+    headless: False
 
 framework:
     tensorboard_logging: False
     csv_logging: False
     gpu: 0
-    logdir: '/home/niudt/tmp'
+    logdir: '/home/elvis/tmp'
     start_seed: 0
     record_every_n: 5
 
@@ -27,11 +27,11 @@ framework:
     eval_from_eps_number: 0
     eval_episodes: 2
     eval_type: 'missing' # or 'best'
-    eval_save_metrics: False
+    eval_save_metrics: True # org True
 
 cinematic_recorder:
     enabled: False
     camera_resolution: [1280, 720]
     fps: 30
     rotate_speed: 0.005
-    save_path: '/home/niudt/tmp/videos'
+    save_path: '/home/elvis/tmp/videos'
