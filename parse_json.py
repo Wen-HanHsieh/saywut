@@ -2,7 +2,7 @@ import json
 import re
 import os
 
-def parse_robot_data(json_data, eval=False, eval_task=None):
+def parse_robot_data(json_data, eval=False, eval_task=None, eval_episode=25):
     """Parse robot data to extract task, episode, and step while preserving original structure."""
     result = []
     
@@ -21,7 +21,7 @@ def parse_robot_data(json_data, eval=False, eval_task=None):
             if eval:
                 # Extract task name (first segment of the path)
                 task = image_path.split('/')[0]
-                
+
                 # Extract episode number
                 episode_match = re.search(r'episode(\d+)', image_path)
                 episode = int(episode_match.group(1)) if episode_match else None
@@ -71,7 +71,7 @@ if __name__ == "__main__":
                 json_data = json.load(file)
             
             # Parse the data
-            parsed_data = parse_robot_data(json_data, eval=True, eval_task=task)
+            parsed_data = parse_robot_data(json_data, eval=True, eval_task=task, eval_episode=100)
             
             # Save the output to a new JSON file
             output_path = f'eval_data/{task}_eval.json'

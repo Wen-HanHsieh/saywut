@@ -30,7 +30,6 @@ def apply_noise(position):
 
 def generate(args):
     selected_task = args.selected_task
-
     for task in selected_task:
         simulation_path = "{}/{}/all_variations/episodes".format(args.data_path, task)
         final_json_content = []

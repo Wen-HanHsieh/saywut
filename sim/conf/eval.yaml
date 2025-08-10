@@ -2,6 +2,8 @@ method:
     name: "LLARVA"
     ckpt: /scratch/partial_datasets/llarva/exp/checkpoints/corl_merge/llava-v1.5-7b-lora_ft_corl_sweep_to_dustpan_of_size_pretrained_trajectories_8gpu_b16_4epochs_1e-4
     with_visual_trace: False
+    fp: "fp_"
+    exp_name: "test"
 
 rlbench:
     task_name: "multi"
@@ -13,7 +15,7 @@ rlbench:
     scene_bounds: [-0.3, -0.5, 0.6, 0.7, 0.5, 1.6]
     include_lang_goal_in_obs: False
     time_in_state: True
-    headless: False
+    headless: True
 
 framework:
     tensorboard_logging: False

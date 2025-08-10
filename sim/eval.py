@@ -79,7 +79,8 @@ def eval_seed(eval_cfg,
     json_data = None
     weight = eval_cfg.method.ckpt
     task = eval_cfg.rlbench.tasks[0]
-    json_file_path = f'/home/elvis/saywut/eval_data/{task}_fp_eval.json'
+    fp = eval_cfg.method.fp
+    json_file_path = f'/home/elvis/saywut/eval_data/{task}_{fp}eval.json'
     logging.info(f'Loading JSON prompts from: {json_file_path}')
     with open(json_file_path, 'r') as f:
         json_data = json.load(f)
@@ -87,16 +88,37 @@ def eval_seed(eval_cfg,
         logging.info(f'Loaded {len(json_data)} JSON prompt entries')
         try:
             json_data = json_data[task]
+            # json_data = json_data["sweep_to_dustpan_of_size"]
         except:
             raise Exception("Task not found in JSON data")
 
-    env_runner.start(weight, save_load_lock, writer_lock, env_config, 0, eval_cfg.framework.eval_save_metrics, eval_cfg.cinematic_recorder, json_data)
+    env_runner.start(weight, save_load_lock, writer_lock, env_config, 0, eval_cfg.framework.eval_save_metrics, eval_cfg.cinematic_recorder, json_data, eval_cfg)
 
     del env_runner
     del agent
     gc.collect()
     torch.cuda.empty_cache()
 
+def fp_stats(data):
+    easy_false_premises = defaultdict(int)
+    hard_false_premises = defaultdict(int)
+    
+    # Analyze each entry
+    for entry in data:
+        # Skip entries without false premise tags
+        if 'is_false_premise' not in entry:
+            continue
+        
+        episode = entry.get('episode')
+        
+        # Count false premises
+        if entry.get('is_false_premise', False):
+            if entry.get('is_easy_false_premise', False):
+                easy_false_premises[episode] += 1
+            else:
+                # This is a hard false premise
+                hard_false_premises[episode] += 1
+    return easy_false_premises, hard_false_premises
 
 @hydra.main(config_name='eval', config_path='conf')
 def main(eval_cfg: DictConfig) -> None:

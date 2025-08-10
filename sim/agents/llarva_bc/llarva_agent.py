@@ -94,22 +94,15 @@ class LLaRVAAgent(Agent):
         if json_prompt is not None:
             instruction = self.extract_instruction(json_prompt)
 
-        qs = 'You are a {} robot using the {}. The task is \"{}\", and the previous five (including current) steps is {}, can you predict action of the next {} step?'.format(
+        qs = 'You are a {} robot using the {}. The task is \"{}\", and the previous five (including current) steps are {}. Can you predict action of the next 1 step?'.format(
             robot_type, control_type, instruction, self.prev_actions_buffer, pred_num_step)
-        # print("qs: ", qs)
-        # NOTE EH: due to the data format, we changed the prompt 
-        # if self.with_visual_trace:
-        #     qs = 'You are a {} using the {}. The task is \"{}\", and the previous five (including current) steps are {}. Can you predict the 2D visual trace of the end effector and the action of the next 1 step?'.format(
-        #         robot_type, control_type, instruction, self.prev_actions_buffer, pred_num_step)
-        # else:
-        #     qs = 'You are a {} robot using the {}. The task is \"{}\", and the previous five (including current) steps is {}, can you predict action of the next {} step?'.format(
-        #     robot_type, control_type, instruction, self.prev_actions_buffer, pred_num_step)
 
         if self.model.config.mm_use_im_start_end:
             qs = DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN + '\n' + qs
         else:
             qs = DEFAULT_IMAGE_TOKEN + '\n' + qs
-
+        
+        # qs = "<image>\nYou are a Franka robot using the joint control. The task is \"push the maroon safe\", and the previous five (including current) steps are [[-0.0086, -0.0226, -0.0027, -1.4021, -0.0017, 1.5246, 0.7823], [-0.0006, -0.0285, -0.0208, -1.4366, 0.0057, 1.5418, 0.7841], [-0.009, -0.0411, -0.0006, -1.4828, 0.0042, 1.5935, 0.7839], [-0.0003, -0.0554, -0.0058, -1.5361, -0.0046, 1.611, 0.7799], [-0.0137, -0.0546, 0.0061, -1.5804, 0.0095, 1.6256, 0.7601]]. Can you predict action of the next 1 step?"
         conv = conv_templates[self.conv_mode].copy()
         conv.append_message(conv.roles[0], qs)
         conv.append_message(conv.roles[1], None)
@@ -121,6 +114,14 @@ class LLaRVAAgent(Agent):
         image = np.transpose(observation['front_rgb'][-1],(1,2,0))
         image = Image.fromarray(image)
         image_tensor = process_images([image], self.image_processor, self.model.config)[0]
+        
+        # DEBUG:
+        # image_path = '/scratch/current/wenhan/saywut_eval/meat_off_grill/all_variations/episodes/episode4/front_rgb/27.png'
+        # img = cv2.imread(image_path)
+        # img = Image.fromarray(img)
+        # image_tensor = process_images([img], self.image_processor, self.model.config)[0]
+        
+      
 
         debug = True # if you want save the vis
         if debug:
@@ -142,42 +143,49 @@ class LLaRVAAgent(Agent):
                 use_cache=True)
 
         outputs = self.tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0].strip()
-        # print("model outputs: ", outputs)
+
         if "Do you mean" in outputs:
             # easy false premise
-            return ActResult(action=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]), info="EASY_FALSE_PREMISE")
+            print("easy FP detected output:",outputs)
+            return ActResult(action=np.array(self.prev_actions_buffer[-1]), info="EASY_FALSE_PREMISE")
         elif "I couldn't find" in outputs:
             # hard false premise
-            return ActResult(action=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]), info="HARD_FALSE_PREMISE")
+            print("hard FP detected output:",outputs)
+            return ActResult(action=np.array(self.prev_actions_buffer[-1]), info="HARD_FALSE_PREMISE")
         else:
             self.tj[self.rollout_step_counter] = outputs
+            numpy_array = np.array(self.prev_actions_buffer[-1])
             if not self.with_visual_trace:
-                # Extracting the list of numbers using regular expression
-                numbers_str = re.search(r'\[(.*?)\]', outputs).group(1)
-
-                # Splitting the numbers string into individual numbers
-                # here add rectify for if it find multiple '[
-                numbers = [self.clean_string(x) for x in numbers_str.split(',')]
-                if len(numbers) == 7:
-                    numbers.append(1.0)
-                numbers_list = [float(x) for x in numbers]
-                numpy_array = np.array(numbers_list)
+                array_match = re.search(r'\[(.*?)\]', outputs)
+                if array_match:
+                    try:
+                        numbers_str = array_match.group(1)
+                        numbers = [self.clean_string(x) for x in numbers_str.split(',')]
+                        if len(numbers) == 7:
+                            numbers.append('1.0')
+                        
+                        numbers_list = [float(x) for x in numbers if x.strip()]
+                        if len(numbers_list) >= 7:  # Ensure we have enough values
+                            numpy_array = np.array(numbers_list)
+                    except (ValueError, IndexError) as e:
+                        print(f"Error in non-visual trace processing: {e}")
+                else:
+                    print("No array pattern found in non-visual trace mode")
             else:
                 match = re.search(r"The next action step: \[([^\]]+)\]", outputs)
                 if match:
-                    # Extract the string and split it into a list of strings
-                    action_step_str = match.group(1)
-                    action_step_list = action_step_str.split(", ")
+                    try:
+                        action_step_str = match.group(1)
+                        action_step_list = action_step_str.split(", ")
+                        
+                        action_step_floats = [float(x) for x in action_step_list]
 
-                    # Convert the list of strings to a list of floats
-                    action_step_floats = [float(x) for x in action_step_list]
-
-                    # Convert the list of floats to a NumPy array
-                    numpy_array = np.array(action_step_floats)
-
-                    # print(action_step_array)
+                        numpy_array = np.array(action_step_floats)
+                    except (ValueError, IndexError) as e:
+                        print(f"Error processing match: {e}")
                 else:
-                    print("No match found")
+                    print("No match found: ", outputs)
+                    numpy_array = np.array(self.prev_actions_buffer[-1])
 
             action_pred = numpy_array
 

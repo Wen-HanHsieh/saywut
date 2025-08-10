@@ -5,7 +5,7 @@ import re
 from collections import defaultdict
 
 # Define false premises for different tasks
-dict_false_premise_easy = {
+dict_false_premise_hard = {
         "open_drawer": [
             "open the top elephant",
             "open the top car",
@@ -83,7 +83,7 @@ dict_false_premise_easy = {
                                   "sweep dust to the tall dustpan", "sweep dirt to the floor"],
     }
     
-dict_false_premise_hard = {
+dict_false_premise_easy = {
         "open_drawer": [
             "open the top chicken",
             "open the top tap",

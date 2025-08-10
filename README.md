@@ -1,3 +1,11 @@
+## Saywut
+
+Data generation: 
+1. Follow the dataset structure from LLARVA and run the following scripts
+2. `python parse_json.py` to restructure the json file to the desired format
+3. `python insert_fp.py` to insert the false premise in the json
+4. The training data is ready for training!
+
 ##  <img src='./docs/logo.png' width="40" height="40" align="left"> LLARVA: Vision-Action Instruction Tuning Enhances Robot Learning
 
 In recent years, instruction-tuned Large Multimodal Models (LMMs) have been successful at several tasks, including image captioning and visual question answering; yet leveraging these models remains an open question for robotics. Prior LMMs for robotics applications have been extensively trained on language and action data, but their ability to generalize in different settings has often been less than desired. To address this, we introduce LLARVA, a model trained with a novel instruction tuning method that leverages structured prompts to unify a range of robotic learning tasks, scenarios, and environments. Additionally, we show that predicting intermediate 2-D representations, which we refer to as "visual traces", can help further align vision and action spaces for robot learning. We generate 8.5M image-visual trace pairs from the Open X-Embodiment dataset in order to pre-train our model, and we evaluate on 12 different tasks in the RLBench simulator as well as a physical Franka Emika Panda 7-DoF robot. Our experiments yield strong performance, demonstrating that LLARVA---using 2-D and language representations---performs well compared to several contemporary baselines, and can generalize across various robot environments and configurations.
